@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CodeRefine AI — Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold-1: #f5c842;
+      --gold-2: #e8a020;
+      --gold-3: #ffd97a;
+      --gold-glow: rgba(245, 200, 66, 0.25);
+      --red-1: #e53935;
+      --red-2: #ff6b6b;
+      --glass-bg: rgba(255,255,255,0.05);
+      --glass-bg-hover: rgba(255,255,255,0.09);
+      --glass-border: rgba(255,255,255,0.1);
+      --glass-border-gold: rgba(245,200,66,0.25);
+      --text-primary: rgba(255,255,255,0.95);
+      --text-secondary: rgba(255,255,255,0.55);
+      --text-muted: rgba(255,255,255,0.3);
+      --blur: blur(28px);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+
+    body {
+      font-family: 'Syne', sans-serif;
+      background: #050508;
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* ── BACKGROUND ── */
+    .bg {
+      position: fixed; inset: 0; z-index: 0; overflow: hidden;
+    }
+    .orb {
+      position: absolute; border-radius: 50%;
+      filter: blur(90px); opacity: 0.45;
+      animation: drift linear infinite;
+    }
+    .o1 { width:650px;height:650px; background:radial-gradient(circle,#1a0a00,#b8730044); top:-200px;left:-150px; animation-duration:26s; }
+    .o2 { width:500px;height:500px; background:radial-gradient(circle,#3d000088,#7a000044); bottom:-100px;right:-100px; animation-duration:20s; animation-delay:-8s; }
+    .o3 { width:400px;height:400px; background:radial-gradient(circle,#2d1a0088,#f5c84222); top:40%;left:55%; animation-duration:30s; animation-delay:-14s; }
+
+    @keyframes drift {
+      0%   { transform: translate(0,0) scale(1); }
+      33%  { transform: translate(20px,-30px) scale(1.04); }
+      66%  { transform: translate(-15px,20px) scale(0.97); }
+      100% { transform: translate(0,0) scale(1); }
+    }
+
+    .bg-grid {
+      position:absolute; inset:0;
+      background-image:
+        linear-gradient(rgba(245,200,66,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(245,200,66,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    /* diagonal accent line */
+    .bg-line {
+      position: absolute;
+      width: 1px; height: 70vh;
+      background: linear-gradient(to bottom, transparent, rgba(245,200,66,0.15), transparent);
+      left: 58%; top: 15%;
+      transform: rotate(12deg);
+    }
+
+    /* ── SPLIT LAYOUT ── */
+    .page {
+      position: relative; z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      width: 100vw; height: 100vh;
+    }
+
+    /* ── LEFT PANEL ── */
+    .left {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 80px;
+      animation: slideLeft 0.9s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    @keyframes slideLeft {
+      from { opacity:0; transform: translateX(-40px); }
+      to   { opacity:1; transform: translateX(0); }
+    }
+
+    .brand {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 52px;
+    }
+
+    .brand-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: linear-gradient(135deg, var(--gold-1), var(--gold-2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 28px var(--gold-glow), 0 4px 16px rgba(0,0,0,0.5);
+    }
+
+    .brand-name {
+      font-size: 1.3rem; font-weight: 800; letter-spacing: -0.5px;
+    }
+    .brand-name span { color: var(--gold-1); }
+
+    .hero-text h1 {
+      font-size: clamp(2.4rem, 4vw, 3.6rem);
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1.05;
+      margin-bottom: 20px;
+    }
+
+    .hero-text h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--gold-1), var(--gold-3), var(--gold-2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-text p {
+      font-size: 1rem; color: var(--text-secondary);
+      line-height: 1.75; font-weight: 400; max-width: 380px;
+      margin-bottom: 44px;
+    }
+
+    .feature-list {
+      display: flex; flex-direction: column; gap: 14px;
+      list-style: none;
+    }
+
+    .feature-list li {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 0.88rem; color: var(--text-secondary); font-weight: 500;
+      animation: fadeUp 0.7s ease both;
+    }
+    .feature-list li:nth-child(1){ animation-delay:0.4s; }
+    .feature-list li:nth-child(2){ animation-delay:0.5s; }
+    .feature-list li:nth-child(3){ animation-delay:0.6s; }
+    .feature-list li:nth-child(4){ animation-delay:0.7s; }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(12px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    .feat-dot {
+      width: 28px; height: 28px; flex-shrink: 0;
+      border-radius: 8px;
+      background: rgba(245,200,66,0.1);
+      border: 1px solid rgba(245,200,66,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+    }
+
+    /* ── RIGHT PANEL ── */
+    .right {
+      display: flex; align-items: center; justify-content: center;
+      padding: 40px;
+      animation: slideRight 0.9s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    @keyframes slideRight {
+      from { opacity:0; transform: translateX(40px); }
+      to   { opacity:1; transform: translateX(0); }
+    }
+
+    .card {
+      width: 100%; max-width: 440px;
+      padding: 44px;
+      border-radius: 28px;
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: var(--blur) saturate(180%);
+      -webkit-backdrop-filter: var(--blur) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow:
+        0 32px 80px rgba(0,0,0,0.6),
+        inset 0 1px 0 rgba(255,255,255,0.12),
+        inset 0 -1px 0 rgba(0,0,0,0.15),
+        0 0 60px rgba(245,200,66,0.04);
+      position: relative; overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(245,200,66,0.4), transparent);
+    }
+
+    .card-title {
+      font-size: 1.6rem; font-weight: 800;
+      letter-spacing: -0.8px; margin-bottom: 6px;
+    }
+    .card-sub {
+      font-size: 0.85rem; color: var(--text-muted);
+      margin-bottom: 36px; font-weight: 400;
+    }
+
+    /* ── TABS ── */
+    .auth-tabs {
+      display: flex; gap: 4px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px; padding: 4px;
+      margin-bottom: 28px;
+    }
+
+    .auth-tab {
+      flex: 1; padding: 9px;
+      border-radius: 10px; border: none;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.85rem; font-weight: 700;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      color: var(--text-muted);
+      background: transparent;
+    }
+
+    .auth-tab.active {
+      background: linear-gradient(135deg, rgba(245,200,66,0.15), rgba(232,160,32,0.1));
+      color: var(--gold-1);
+      border: 1px solid rgba(245,200,66,0.2);
+      box-shadow: 0 2px 12px rgba(245,200,66,0.1);
+    }
+
+    /* ── FORM ── */
+    .form-group {
+      margin-bottom: 16px;
+      animation: fadeUp 0.5s ease both;
+    }
+    .form-group:nth-child(1){ animation-delay:0.2s; }
+    .form-group:nth-child(2){ animation-delay:0.3s; }
+    .form-group:nth-child(3){ animation-delay:0.4s; }
+
+    label {
+      display: block;
+      font-size: 0.75rem; font-weight: 700;
+      letter-spacing: 0.8px; text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-icon {
+      position: absolute; left: 14px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 15px; opacity: 0.45;
+      pointer-events: none;
+    }
+
+    input[type="text"], input[type="email"], input[type="password"] {
+      width: 100%; padding: 13px 14px 13px 40px;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 12px;
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      outline: none;
+      transition: all 0.25s ease;
+    }
+
+    input:focus {
+      border-color: rgba(245,200,66,0.4);
+      background: rgba(0,0,0,0.45);
+      box-shadow: 0 0 0 3px rgba(245,200,66,0.08), 0 0 20px rgba(245,200,66,0.05);
+    }
+
+    input::placeholder { color: rgba(255,255,255,0.2); }
+
+    .input-toggle {
+      position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none;
+      color: var(--text-muted); cursor: pointer;
+      font-size: 16px; transition: color 0.2s;
+    }
+    .input-toggle:hover { color: var(--gold-1); }
+
+    .form-hint {
+      text-align: right; margin-top: 6px;
+    }
+    .form-hint a {
+      font-size: 0.75rem; color: var(--gold-2);
+      text-decoration: none; font-weight: 600;
+      transition: color 0.2s;
+    }
+    .form-hint a:hover { color: var(--gold-1); }
+
+    /* ── SUBMIT ── */
+    .btn-submit {
+      width: 100%; padding: 14px;
+      margin-top: 8px;
+      border-radius: 14px; border: none;
+      background: linear-gradient(135deg, var(--gold-1), var(--gold-2));
+      color: #0d0900;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem; font-weight: 800;
+      cursor: pointer;
+      letter-spacing: 0.2px;
+      box-shadow: 0 4px 20px rgba(245,200,66,0.35);
+      transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+      position: relative; overflow: hidden;
+      animation: fadeUp 0.5s 0.5s ease both;
+    }
+
+    .btn-submit::before {
+      content: '';
+      position: absolute; top:0; left:-100%; width:100%; height:100%;
+      background: linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
+      transition: left 0.4s ease;
+    }
+    .btn-submit:hover::before { left:100%; }
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(245,200,66,0.5);
+    }
+    .btn-submit:active { transform: scale(0.98); }
+
+    /* ── DIVIDER ── */
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 20px 0;
+      color: var(--text-muted); font-size: 0.75rem;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px;
+      background: rgba(255,255,255,0.07);
+    }
+
+    /* ── OAUTH ── */
+    .oauth-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+      animation: fadeUp 0.5s 0.6s ease both;
+    }
+
+    .oauth-btn {
+      padding: 11px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      color: var(--text-secondary);
+      font-family: 'Syne', sans-serif;
+      font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
+      transition: all 0.2s ease;
+    }
+    .oauth-btn:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.16);
+      transform: translateY(-1px);
+    }
+
+    /* ── REGISTER FORM (hidden by default) ── */
+    #registerForm { display: none; }
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:768px) {
+      .page { grid-template-columns: 1fr; }
+      .left  { display: none; }
+      .right { height: 100vh; padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg">
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-line"></div>
+</div>
+
+<div class="page">
+
+  <!-- LEFT: Branding -->
+  <div class="left">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-name">CodeRefine <span>AI</span></div>
+    </div>
+
+    <div class="hero-text">
+      <h1>Code Review,<br><em>Reimagined.</em></h1>
+      <p>AI-powered analysis that doesn't just find problems — it fixes them. Ship cleaner, faster, safer code every time.</p>
+    </div>
+
+    <ul class="feature-list">
+      <li><div class="feat-dot">🐛</div> Real-time bug & anti-pattern detection</li>
+      <li><div class="feat-dot">🔐</div> Security vulnerability scanning</li>
+      <li><div class="feat-dot">⚡</div> Performance optimization insights</li>
+      <li><div class="feat-dot">✨</div> Autonomous code rewriting agent</li>
+    </ul>
+  </div>
+
+  <!-- RIGHT: Auth Card -->
+  <div class="right">
+    <div class="card">
+      <div class="card-title">Welcome Back</div>
+      <div class="card-sub">Sign in to your CodeRefine AI workspace</div>
+
+      <!-- Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchAuth('login',this)">Sign In</button>
+        <button class="auth-tab" onclick="switchAuth('register',this)">Create Account</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label>Email Address</label>
+          <div class="input-wrap">
+            <span class="input-icon">✉</span>
+            <input type="email" placeholder="you@example.com" required/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="loginPass" placeholder="Enter your password" required/>
+            <button type="button" class="input-toggle" onclick="togglePass('loginPass',this)">👁</button>
+          </div>
+          <div class="form-hint"><a href="#">Forgot password?</a></div>
+        </div>
+        <button type="submit" class="btn-submit" id="loginBtn">Sign In →</button>
+      </form>
+
+      <!-- REGISTER FORM -->
+      <form id="registerForm" onsubmit="handleRegister(event)">
+        <div class="form-group">
+          <label>Full Name</label>
+          <div class="input-wrap">
+            <span class="input-icon">👤</span>
+            <input type="text" placeholder="Your name" required/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <div class="input-wrap">
+            <span class="input-icon">✉</span>
+            <input type="email" placeholder="you@example.com" required/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="regPass" placeholder="Min. 8 characters" required/>
+            <button type="button" class="input-toggle" onclick="togglePass('regPass',this)">👁</button>
+          </div>
+        </div>
+        <button type="submit" class="btn-submit">Create Account →</button>
+      </form>
+
+      <div class="divider">or continue with</div>
+
+      <div class="oauth-row">
+        <button class="oauth-btn">🔵 &nbsp;GitHub</button>
+        <button class="oauth-btn">🔴 &nbsp;Google</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function switchAuth(mode, tab) {
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    if (mode === 'login') {
+      document.getElementById('loginForm').style.display = 'block';
+      document.getElementById('registerForm').style.display = 'none';
+      document.querySelector('.card-title').textContent = 'Welcome Back';
+      document.querySelector('.card-sub').textContent = 'Sign in to your CodeRefine AI workspace';
+    } else {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('registerForm').style.display = 'block';
+      document.querySelector('.card-title').textContent = 'Get Started';
+      document.querySelector('.card-sub').textContent = 'Create your free CodeRefine AI account';
+    }
+  }
+
+  function togglePass(id, btn) {
+    const inp = document.getElementById(id);
+    if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+    else { inp.type = 'password'; btn.textContent = '👁'; }
+  }
+
+  function handleLogin(e) {
+    e.preventDefault();
+    const btn = document.getElementById('loginBtn');
+    btn.textContent = 'Signing in...';
+    btn.style.opacity = '0.8';
+    setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+  }
+
+  function handleRegister(e) {
+    e.preventDefault();
+    setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+  }
+</script>
+</body>
+</html>

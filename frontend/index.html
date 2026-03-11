@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CodeRefine AI — Code Review</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold-1: #f5c842;
+      --gold-2: #e8a020;
+      --gold-3: #ffd97a;
+      --gold-dim: rgba(245,200,66,0.12);
+      --gold-glow: rgba(245,200,66,0.22);
+      --red-1: #e53935;
+      --red-dim: rgba(229,57,53,0.12);
+      --glass-bg: rgba(255,255,255,0.04);
+      --glass-bg-hover: rgba(255,255,255,0.08);
+      --glass-border: rgba(255,255,255,0.08);
+      --glass-border-gold: rgba(245,200,66,0.2);
+      --text-primary: rgba(255,255,255,0.93);
+      --text-secondary: rgba(255,255,255,0.52);
+      --text-muted: rgba(255,255,255,0.28);
+      --blur: blur(28px);
+      --r-xl: 24px; --r-lg: 18px; --r-md: 12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Syne', sans-serif;
+      background: #050508;
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .bg { position:fixed; inset:0; z-index:0; overflow:hidden; }
+    .orb { position:absolute; border-radius:50%; filter:blur(100px); opacity:0.4; animation:drift linear infinite; }
+    .o1 { width:700px;height:700px; background:radial-gradient(circle,#1c0d0088,#c8820033); top:-200px;left:-200px; animation-duration:28s; }
+    .o2 { width:500px;height:500px; background:radial-gradient(circle,#40000088,#88000033); bottom:-80px;right:-80px; animation-duration:22s; animation-delay:-9s; }
+    .o3 { width:380px;height:380px; background:radial-gradient(circle,#2a1a0066,#f5c84218); top:45%;left:50%; animation-duration:32s; animation-delay:-16s; }
+    .o4 { width:280px;height:280px; background:radial-gradient(circle,#0a0a2088,#1a1a6622); top:20%;right:30%; animation-duration:25s; animation-delay:-4s; }
+
+    @keyframes drift {
+      0%   { transform:translate(0,0) scale(1); }
+      33%  { transform:translate(25px,-35px) scale(1.05); }
+      66%  { transform:translate(-18px,25px) scale(0.96); }
+      100% { transform:translate(0,0) scale(1); }
+    }
+
+    .bg-grid {
+      position:absolute;inset:0;
+      background-image:linear-gradient(rgba(245,200,66,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(245,200,66,0.025) 1px,transparent 1px);
+      background-size:52px 52px;
+    }
+
+    nav {
+      position:sticky; top:0; z-index:100;
+      height:62px; padding:0 28px;
+      display:flex; align-items:center; justify-content:space-between;
+      background:rgba(5,5,8,0.6);
+      backdrop-filter:blur(40px) saturate(180%);
+      -webkit-backdrop-filter:blur(40px) saturate(180%);
+      border-bottom:1px solid rgba(245,200,66,0.08);
+      animation:fadeDown 0.6s ease both;
+    }
+    @keyframes fadeDown { from{opacity:0;transform:translateY(-16px);}to{opacity:1;transform:translateY(0);} }
+
+    .nav-left { display:flex; align-items:center; gap:24px; }
+    .logo { display:flex; align-items:center; gap:10px; font-weight:800; font-size:1.1rem; letter-spacing:-0.3px; }
+    .logo-icon {
+      width:36px;height:36px;border-radius:10px;
+      background:linear-gradient(135deg,var(--gold-1),var(--gold-2));
+      display:flex;align-items:center;justify-content:center;font-size:17px;
+      box-shadow:0 0 20px var(--gold-glow);
+    }
+    .logo span { color:var(--gold-1); }
+    .nav-pill {
+      padding:4px 12px; border-radius:20px;
+      background:rgba(245,200,66,0.08); border:1px solid rgba(245,200,66,0.15);
+      font-size:0.72rem; font-weight:700; color:var(--gold-2);
+      letter-spacing:1px; text-transform:uppercase;
+    }
+    .nav-right { display:flex; align-items:center; gap:10px; }
+    .nav-model {
+      display:flex;align-items:center;gap:6px;
+      padding:5px 12px; border-radius:20px;
+      background:var(--glass-bg); border:1px solid var(--glass-border);
+      font-size:0.75rem; font-weight:600; color:var(--text-secondary);
+    }
+    .model-dot { width:6px;height:6px;border-radius:50%;background:#28c840;box-shadow:0 0 6px #28c840; animation:pulse 2s infinite; }
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+    .nav-avatar {
+      width:32px;height:32px;border-radius:50%;
+      background:linear-gradient(135deg,var(--gold-1),var(--red-1));
+      display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#000;
+      cursor:pointer; transition:transform 0.2s;
+    }
+    .nav-avatar:hover { transform:scale(1.05); }
+
+    .main { display:flex; height:calc(100vh - 62px); }
+
+    .sidebar {
+      width:220px; flex-shrink:0;
+      padding:20px 14px;
+      background:rgba(0,0,0,0.25);
+      backdrop-filter:var(--blur);
+      -webkit-backdrop-filter:var(--blur);
+      border-right:1px solid rgba(255,255,255,0.05);
+      display:flex; flex-direction:column; gap:6px;
+      animation:slideLeft 0.7s ease both;
+      overflow-y:auto;
+    }
+    @keyframes slideLeft{from{opacity:0;transform:translateX(-20px);}to{opacity:1;transform:translateX(0);}}
+    .sidebar-label {
+      font-size:0.65rem; font-weight:700; letter-spacing:2px;
+      text-transform:uppercase; color:var(--text-muted);
+      padding:10px 10px 6px;
+    }
+    .sidebar-item {
+      display:flex;align-items:center;gap:10px;
+      padding:9px 12px; border-radius:12px;
+      font-size:0.82rem; font-weight:600;
+      color:var(--text-secondary);
+      cursor:pointer; transition:all 0.2s ease;
+      border:1px solid transparent;
+    }
+    .sidebar-item:hover { background:var(--glass-bg); color:var(--text-primary); }
+    .sidebar-item.active {
+      background:linear-gradient(135deg,rgba(245,200,66,0.12),rgba(232,160,32,0.06));
+      color:var(--gold-1); border-color:rgba(245,200,66,0.18);
+    }
+    .sidebar-item .si-icon { font-size:15px; width:20px; text-align:center; }
+    .sidebar-spacer { flex:1; }
+    .sidebar-bottom { padding-top:12px; border-top:1px solid rgba(255,255,255,0.05); }
+
+    .content {
+      flex:1; display:flex; flex-direction:column;
+      overflow:hidden;
+      animation:fadeUp 0.7s 0.2s ease both;
+    }
+    @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+    .toolbar {
+      padding:12px 20px;
+      display:flex;align-items:center;gap:10px;
+      background:rgba(0,0,0,0.2);
+      border-bottom:1px solid rgba(255,255,255,0.05);
+      flex-wrap:wrap;
+    }
+    .mode-tabs {
+      display:flex;gap:3px;
+      background:rgba(0,0,0,0.35);border:1px solid var(--glass-border);
+      border-radius:12px;padding:3px;
+    }
+    .mode-tab {
+      padding:6px 14px; border-radius:9px; border:none;
+      font-family:'Syne',sans-serif; font-size:0.78rem; font-weight:700;
+      cursor:pointer; transition:all 0.2s ease;
+      color:var(--text-muted); background:transparent;
+    }
+    .mode-tab.active {
+      background:linear-gradient(135deg,rgba(245,200,66,0.15),rgba(232,160,32,0.08));
+      color:var(--gold-1); border:1px solid rgba(245,200,66,0.2);
+    }
+    .toolbar-sep { width:1px;height:22px;background:rgba(255,255,255,0.08);margin:0 4px; }
+    select.ctrl {
+      background:rgba(0,0,0,0.4); border:1px solid var(--glass-border);
+      color:var(--text-secondary); padding:6px 12px; border-radius:10px;
+      font-family:'Syne',sans-serif; font-size:0.78rem; font-weight:600;
+      cursor:pointer; outline:none; transition:all 0.2s;
+    }
+    select.ctrl:hover { border-color:var(--glass-border-gold); color:var(--text-primary); }
+    .ctrl-btn {
+      padding:6px 14px; border-radius:10px; border:none;
+      background:var(--glass-bg); border:1px solid var(--glass-border);
+      color:var(--text-secondary); font-family:'Syne',sans-serif;
+      font-size:0.78rem; font-weight:600; cursor:pointer; transition:all 0.2s;
+      display:flex; align-items:center; gap:6px;
+    }
+    .ctrl-btn:hover { background:var(--glass-bg-hover); color:var(--text-primary); border-color:var(--glass-border-gold); }
+    .ml-auto { margin-left:auto; }
+    .run-btn {
+      padding:8px 22px; border-radius:50px; border:none;
+      background:linear-gradient(135deg,var(--gold-1),var(--gold-2));
+      color:#0d0900; font-family:'Syne',sans-serif;
+      font-size:0.85rem; font-weight:800; cursor:pointer;
+      box-shadow:0 4px 20px var(--gold-glow);
+      transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+      display:flex;align-items:center;gap:8px;
+      position:relative; overflow:hidden;
+    }
+    .run-btn::before {
+      content:''; position:absolute;top:0;left:-100%;width:100%;height:100%;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
+      transition:left 0.4s ease;
+    }
+    .run-btn:hover::before { left:100%; }
+    .run-btn:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(245,200,66,0.45); }
+    .run-btn:disabled { opacity:0.6; transform:none; cursor:not-allowed; }
+
+    .editor-area {
+      flex:1; display:grid; grid-template-columns:1fr 1fr;
+      overflow:hidden;
+    }
+    .pane {
+      display:flex; flex-direction:column; overflow:hidden;
+      border-right:1px solid rgba(255,255,255,0.05);
+    }
+    .pane:last-child { border-right:none; }
+    .pane-header {
+      padding:8px 16px;
+      display:flex;align-items:center;justify-content:space-between;
+      background:rgba(0,0,0,0.3); border-bottom:1px solid rgba(255,255,255,0.05);
+      flex-shrink:0;
+    }
+    .pane-title {
+      display:flex;align-items:center;gap:8px;
+      font-size:0.72rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+      color:var(--text-muted);
+    }
+    .pane-dot { width:6px;height:6px;border-radius:50%; }
+    .dot-amber { background:#febc2e; box-shadow:0 0 6px #febc2e; }
+    .dot-gold  { background:var(--gold-1); box-shadow:0 0 6px var(--gold-1); }
+    .pane-actions { display:flex;gap:6px; }
+    .pane-btn {
+      padding:3px 10px; border-radius:6px; border:1px solid var(--glass-border);
+      background:transparent; color:var(--text-muted);
+      font-family:'JetBrains Mono',monospace; font-size:0.68rem;
+      cursor:pointer; transition:all 0.2s;
+    }
+    .pane-btn:hover { background:var(--glass-bg); color:var(--text-primary); }
+
+    textarea.code-editor {
+      flex:1; width:100%; padding:18px 20px;
+      background:rgba(0,0,0,0.22); border:none; outline:none; resize:none;
+      color:#e2e2e2; font-family:'JetBrains Mono',monospace;
+      font-size:0.84rem; line-height:1.75; tab-size:2;
+      transition:background 0.2s;
+    }
+    textarea.code-editor:focus { background:rgba(0,0,0,0.3); }
+    textarea.code-editor::placeholder { color:rgba(255,255,255,0.18); }
+
+    .output-area {
+      flex:1; padding:18px 20px;
+      background:rgba(0,0,0,0.18); overflow-y:auto;
+      font-family:'JetBrains Mono',monospace; font-size:0.83rem; line-height:1.75;
+    }
+    .empty-state {
+      height:100%;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:14px;
+      color:var(--text-muted);
+    }
+    .empty-state svg { opacity:0.2; }
+    .empty-state p { font-size:0.83rem; text-align:center; }
+
+    .status-bar {
+      padding:6px 20px;
+      display:flex;align-items:center;gap:16px;
+      background:rgba(0,0,0,0.4); border-top:1px solid rgba(255,255,255,0.05);
+      font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--text-muted);
+      flex-shrink:0;
+    }
+    .status-bar .sep { opacity:0.3; }
+    .status-gold { color:var(--gold-2); }
+
+    .load-bar {
+      height:2px; display:none;
+      background:linear-gradient(90deg,var(--gold-1),var(--red-1),var(--gold-1));
+      background-size:200% 100%;
+      animation:sweep 1.4s linear infinite;
+    }
+    .load-bar.on { display:block; }
+    @keyframes sweep{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+    .right-panel {
+      width:300px; flex-shrink:0;
+      background:rgba(0,0,0,0.25);
+      backdrop-filter:var(--blur);
+      -webkit-backdrop-filter:var(--blur);
+      border-left:1px solid rgba(255,255,255,0.05);
+      display:flex;flex-direction:column;
+      overflow:hidden;
+      animation:slideRight 0.7s 0.3s ease both;
+    }
+    @keyframes slideRight{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+    .panel-header {
+      padding:14px 16px;
+      border-bottom:1px solid rgba(255,255,255,0.05);
+      font-size:0.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+      color:var(--text-muted);
+      display:flex;align-items:center;justify-content:space-between;
+    }
+    .panel-body { flex:1; overflow-y:auto; padding:14px; display:flex;flex-direction:column;gap:10px; }
+
+    .score-card {
+      padding:20px; border-radius:var(--r-lg); text-align:center;
+      background:linear-gradient(135deg,rgba(245,200,66,0.07),rgba(232,160,32,0.04));
+      border:1px solid rgba(245,200,66,0.15);
+    }
+    .score-ring { width:80px;height:80px;margin:0 auto 12px;position:relative; }
+    .score-ring svg { transform:rotate(-90deg); }
+    .score-ring circle.track { fill:none; stroke:rgba(255,255,255,0.07); stroke-width:6; }
+    .score-ring circle.fill {
+      fill:none; stroke:var(--gold-1); stroke-width:6;
+      stroke-linecap:round; stroke-dasharray:201; stroke-dashoffset:201;
+      transition:stroke-dashoffset 1.2s ease;
+    }
+    .score-num {
+      position:absolute;inset:0;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      font-size:1.15rem;font-weight:800;color:var(--gold-1);line-height:1;
+    }
+    .score-num small { font-size:0.55rem; color:var(--text-muted); font-weight:600; margin-top:2px; }
+    .score-label { font-size:0.72rem; color:var(--text-muted); font-weight:600; }
+    .score-improved { font-size:0.75rem; color:#80c080; font-weight:700; margin-top:4px; }
+
+    .issue-chips { display:flex;flex-wrap:wrap;gap:7px; }
+    .chip { display:flex;align-items:center;gap:5px; padding:5px 10px;border-radius:20px; font-size:0.72rem;font-weight:700; }
+    .chip-bug      { background:rgba(229,57,53,0.12); border:1px solid rgba(229,57,53,0.25); color:#ef9a9a; }
+    .chip-security { background:rgba(255,152,0,0.12); border:1px solid rgba(255,152,0,0.25); color:#ffcc80; }
+    .chip-perf     { background:rgba(245,200,66,0.12); border:1px solid rgba(245,200,66,0.22); color:var(--gold-3); }
+    .chip-style    { background:rgba(179,157,219,0.12); border:1px solid rgba(179,157,219,0.22); color:#ce93d8; }
+
+    .issue-item {
+      padding:10px 12px; border-radius:10px;
+      background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.06);
+      transition:all 0.2s; cursor:pointer;
+    }
+    .issue-item:hover { background:rgba(255,255,255,0.04); border-color:rgba(245,200,66,0.15); }
+    .issue-top { display:flex;align-items:center;gap:6px;margin-bottom:5px; }
+    .issue-sev { padding:2px 7px;border-radius:10px; font-size:0.65rem;font-weight:800;letter-spacing:0.4px;text-transform:uppercase; }
+    .sev-critical { background:rgba(229,57,53,0.15); color:#ff7070; border:1px solid rgba(229,57,53,0.2); }
+    .sev-high     { background:rgba(255,152,0,0.15);  color:#ffb74d; border:1px solid rgba(255,152,0,0.2); }
+    .sev-medium   { background:rgba(245,200,66,0.12); color:var(--gold-3); border:1px solid rgba(245,200,66,0.2); }
+    .sev-low      { background:rgba(128,200,128,0.12);color:#a5d6a7; border:1px solid rgba(128,200,128,0.2); }
+    .issue-title  { font-size:0.8rem;font-weight:700;color:var(--text-primary); }
+    .issue-desc   { font-size:0.75rem;color:var(--text-secondary);line-height:1.5;font-weight:400; }
+
+    .review-output { color:#e2e8f0; }
+    .ro-section { margin-bottom:14px; }
+    .ro-title {
+      font-size:0.7rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+      color:var(--gold-2);margin-bottom:8px;padding-bottom:5px;
+      border-bottom:1px solid rgba(245,200,66,0.15);
+    }
+    .ro-pre {
+      white-space:pre-wrap; font-size:0.82rem; color:#e2e8f0;
+      line-height:1.75; font-family:'JetBrains Mono',monospace;
+    }
+    .error-state {
+      padding:16px; border-radius:12px;
+      background:rgba(229,57,53,0.1); border:1px solid rgba(229,57,53,0.25);
+      color:#ff7070; font-size:0.83rem; line-height:1.6;
+    }
+
+    @media(max-width:1100px) { .right-panel { display:none; } }
+    @media(max-width:768px) {
+      .sidebar { display:none; }
+      .editor-area { grid-template-columns:1fr; }
+      .pane:first-child { border-right:none; border-bottom:1px solid rgba(255,255,255,0.05); height:50%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg">
+  <div class="orb o1"></div><div class="orb o2"></div>
+  <div class="orb o3"></div><div class="orb o4"></div>
+  <div class="bg-grid"></div>
+</div>
+
+<!-- NAVBAR -->
+<nav>
+  <div class="nav-left">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      CodeRefine <span>AI</span>
+    </div>
+    <div class="nav-pill">Beta</div>
+  </div>
+  <div class="nav-right">
+    <div class="nav-model" id="navModel"><div class="model-dot"></div> Groq · Llama 3.3</div>
+    <div class="nav-avatar">U</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-label">Review</div>
+    <div class="sidebar-item active"><span class="si-icon">⚡</span> Code Review</div>
+    <div class="sidebar-item"><span class="si-icon">✨</span> Rewrite Agent</div>
+    <div class="sidebar-item"><span class="si-icon">🔐</span> Security Scan</div>
+    <div class="sidebar-item"><span class="si-icon">📊</span> Performance</div>
+    <div class="sidebar-label">History</div>
+    <div class="sidebar-item"><span class="si-icon">🕒</span> Recent Reviews</div>
+    <div class="sidebar-item"><span class="si-icon">📁</span> Saved Snippets</div>
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-bottom">
+      <div class="sidebar-item"><span class="si-icon">⚙</span> Settings</div>
+      <div class="sidebar-item" onclick="window.location.href='login.html'"><span class="si-icon">🚪</span> Sign Out</div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="mode-tabs">
+        <button class="mode-tab active" onclick="setMode(this)">Review</button>
+        <button class="mode-tab" onclick="setMode(this)">Rewrite</button>
+        <button class="mode-tab" onclick="setMode(this)">Security</button>
+        <button class="mode-tab" onclick="setMode(this)">Performance</button>
+      </div>
+      <div class="toolbar-sep"></div>
+      <select class="ctrl" id="langSel" onchange="document.getElementById('langStat').textContent=this.value">
+        <option>Python</option><option>JavaScript</option><option>TypeScript</option>
+        <option>Java</option><option>C++</option><option>Go</option><option>Rust</option><option>PHP</option>
+      </select>
+      <select class="ctrl" id="modelSel" onchange="updateModel(this.value)">
+        <option>Groq · Llama 3.3</option>
+        <option>Gemini 1.5 Pro</option>
+        <option>HuggingFace</option>
+      </select>
+      <button class="ctrl-btn" onclick="clearAll()">🗑 Clear</button>
+      <button class="ctrl-btn" id="copyBtn" onclick="copyOutput()">📋 Copy</button>
+      <button class="run-btn ml-auto" id="runBtn" onclick="runReview()">
+        <span id="runIcon">⚡</span>
+        <span id="runText">Run Review</span>
+      </button>
+    </div>
+
+    <div class="load-bar" id="loadBar"></div>
+
+    <!-- EDITOR AREA -->
+    <div class="editor-area">
+      <div class="pane">
+        <div class="pane-header">
+          <div class="pane-title"><div class="pane-dot dot-amber"></div> Input Code</div>
+          <div class="pane-actions">
+            <button class="pane-btn" onclick="pasteDemo()">Demo</button>
+            <button class="pane-btn" id="lineCount">0 lines</button>
+          </div>
+        </div>
+        <textarea class="code-editor" id="codeIn"
+          placeholder="// Paste your code here...&#10;// Press Ctrl+Enter or click Run Review"></textarea>
+      </div>
+
+      <div class="pane">
+        <div class="pane-header">
+          <div class="pane-title"><div class="pane-dot dot-gold"></div> AI Output</div>
+          <div class="pane-actions">
+            <button class="pane-btn" id="outLang" style="color:var(--gold-2)">Awaiting...</button>
+          </div>
+        </div>
+        <div class="output-area" id="outArea">
+          <div class="empty-state">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+            </svg>
+            <p>Your AI-powered review<br>will appear here</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATUS BAR -->
+    <div class="status-bar">
+      <span id="tokenStat">0 tokens</span>
+      <span class="sep">|</span>
+      <span id="langStat">Python</span>
+      <span class="sep">|</span>
+      <span id="modelStat" class="status-gold">Groq · Llama 3.3</span>
+      <span class="sep">|</span>
+      <span id="statusMsg">Ready</span>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="panel-header">
+      Analysis
+      <span id="issueCount" style="color:var(--gold-2)">—</span>
+    </div>
+    <div class="panel-body">
+      <div class="score-card">
+        <div class="score-ring">
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            <circle class="track" cx="40" cy="40" r="32"/>
+            <circle class="fill" id="scoreFill" cx="40" cy="40" r="32"/>
+          </svg>
+          <div class="score-num" id="scoreNum">—<small>score</small></div>
+        </div>
+        <div class="score-label">Code Quality Score</div>
+        <div class="score-improved" id="scoreImproved"></div>
+      </div>
+      <div class="issue-chips" id="issueChips">
+        <div style="font-size:0.78rem;color:var(--text-muted);padding:4px">Run a review to see issues</div>
+      </div>
+      <div id="issueList"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── LIVE STATS ──
+  const codeIn = document.getElementById('codeIn');
+  codeIn.addEventListener('input', () => {
+    const lines  = codeIn.value.split('\n').length;
+    const tokens = Math.round(codeIn.value.trim().split(/\s+/).filter(Boolean).length * 1.3);
+    document.getElementById('lineCount').textContent = lines + ' lines';
+    document.getElementById('tokenStat').textContent = '~' + tokens + ' tokens';
+  });
+
+  function updateModel(val) {
+    document.getElementById('modelStat').textContent = val;
+    document.getElementById('navModel').innerHTML = `<div class="model-dot"></div> ${val}`;
+  }
+
+  function setMode(el) {
+    document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('runText').textContent = 'Run ' + el.textContent;
+  }
+
+  // ── DEMO CODE ──
+  function pasteDemo() {
+    codeIn.value = `def fetch_user_data(user_id):
+    import sqlite3
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
+    query = "SELECT * FROM users WHERE id = " + str(user_id)
+    cursor.execute(query)
+    result = cursor.fetchall()
+    return result
+
+def calculate_discount(items, discount):
+    total = 0
+    for i in range(len(items)):
+        total = total + items[i]["price"]
+    return total - discount`;
+    codeIn.dispatchEvent(new Event('input'));
+  }
+
+  // ── CLEAR ──
+  function clearAll() {
+    codeIn.value = '';
+    codeIn.dispatchEvent(new Event('input'));
+    document.getElementById('outArea').innerHTML = `<div class="empty-state">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+      </svg><p>Your AI-powered review<br>will appear here</p></div>`;
+    document.getElementById('scoreNum').innerHTML       = '—<small>score</small>';
+    document.getElementById('scoreFill').style.strokeDashoffset = 201;
+    document.getElementById('issueChips').innerHTML     = `<div style="font-size:0.78rem;color:var(--text-muted);padding:4px">Run a review to see issues</div>`;
+    document.getElementById('issueList').innerHTML      = '';
+    document.getElementById('scoreImproved').textContent = '';
+    document.getElementById('issueCount').textContent   = '—';
+    document.getElementById('outLang').textContent      = 'Awaiting...';
+    document.getElementById('statusMsg').textContent    = 'Ready';
+  }
+
+  // ── COPY ──
+  function copyOutput() {
+    const out = document.getElementById('outArea').innerText;
+    navigator.clipboard.writeText(out).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = '✅ Copied';
+      setTimeout(() => btn.textContent = '📋 Copy', 1800);
+    });
+  }
+
+  // ── MAIN REVIEW — connected to real FastAPI backend ──
+  async function runReview() {
+    const code = codeIn.value.trim();
+    const btn  = document.getElementById('runBtn');
+    const icon = document.getElementById('runIcon');
+    const txt  = document.getElementById('runText');
+    const out  = document.getElementById('outArea');
+    const bar  = document.getElementById('loadBar');
+    const lang = document.getElementById('langSel').value;
+
+    if (!code) {
+      out.innerHTML = `<div class="empty-state" style="color:rgba(229,100,100,0.7)">⚠️ Please paste some code first.</div>`;
+      return;
+    }
+
+    // Loading state
+    btn.disabled     = true;
+    icon.textContent = '⏳';
+    txt.textContent  = 'Analyzing...';
+    bar.classList.add('on');
+    document.getElementById('statusMsg').textContent = 'AI is reviewing your code...';
+
+    out.innerHTML = `<div class="empty-state" style="color:rgba(245,200,66,0.7)">
+      <div style="font-size:2rem;animation:pulse 1.2s infinite">⚡</div>
+      <p>Running AI review…</p>
+    </div>`;
+
+    try {
+      // ── REAL FASTAPI CALL ──
+      const res = await fetch('/app/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: code,
+          language: lang,
+          focus_areas: ['bugs', 'security', 'performance', 'style']
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || `Server error: ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      // Render real Groq response
+      out.innerHTML = `
+        <div class="review-output">
+          <div class="ro-section">
+            <div class="ro-title">⚡ AI Review — ${data.language}</div>
+            <pre class="ro-pre">${escapeHtml(data.review)}</pre>
+          </div>
+        </div>`;
+
+      document.getElementById('outLang').textContent    = data.language;
+      document.getElementById('statusMsg').textContent  = '✓ Review complete';
+      document.getElementById('issueCount').textContent = 'Done';
+
+      // Animate score ring
+      animateScore(75);
+
+      document.getElementById('issueChips').innerHTML = `
+        <span class="chip chip-bug">🐛 Bugs</span>
+        <span class="chip chip-security">🔐 Security</span>
+        <span class="chip chip-perf">⚡ Performance</span>
+        <span class="chip chip-style">✨ Style</span>`;
+
+    } catch (err) {
+      out.innerHTML = `<div class="error-state">
+        ❌ <strong>Error:</strong> ${err.message}<br><br>
+        Make sure your backend is running on port 8000 and your .env is configured correctly.
+      </div>`;
+      document.getElementById('statusMsg').textContent = 'Error — check console';
+      console.error('Review error:', err);
+    }
+
+    // Reset button
+    btn.disabled     = false;
+    icon.textContent = '⚡';
+    txt.textContent  = 'Run Review';
+    bar.classList.remove('on');
+  }
+
+  // ── HELPERS ──
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function animateScore(score) {
+    const offset = 201 - (score / 100) * 201;
+    document.getElementById('scoreFill').style.strokeDashoffset = offset;
+    document.getElementById('scoreNum').innerHTML = `${score}<small>score</small>`;
+    document.getElementById('scoreImproved').textContent = 'Apply fixes to improve ↑';
+  }
+
+  // ── KEYBOARD SHORTCUT ──
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runReview();
+  });
+</script>
+</body>
+</html>
