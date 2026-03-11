@@ -607,7 +607,7 @@ def calculate_discount(items, discount):
 
     try {
       // ── REAL FASTAPI CALL ──
-      const res = await fetch('/app/review', {
+      const res = await fetch('https://vigilant-chainsaw-9xr996945jg3p7j7-8000.app.github.dev/app/review', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
